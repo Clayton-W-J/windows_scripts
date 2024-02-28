@@ -1,0 +1,6 @@
+$url = "https://github.com/"
+$output = "C:\Users\"
+$start_time = Get-Date
+
+Import-Module BitsTransfer
+Start-BitsTransfer -Source $url -Destination $output
