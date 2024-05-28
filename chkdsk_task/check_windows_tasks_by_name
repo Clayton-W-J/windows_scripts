@@ -1,0 +1,2 @@
+#Queries the windows task list by name
+schtasks /query /tn "MyTask"
