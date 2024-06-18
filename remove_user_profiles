@@ -1,0 +1,52 @@
+# Function to remove a user profile
+function Remove-UserProfile {
+    param (
+        [string]$username
+    )
+
+    try {
+        # Get the user profile
+        $profile = Get-WmiObject Win32_UserProfile | Where-Object { $_.LocalPath -like "*\$username" }
+
+        if ($profile) {
+            # Remove the user profile
+            $profile.Delete()
+            Write-Host "Profile for user '$username' removed successfully."
+        } else {
+            Write-Host "Profile for user '$username' not found."
+        }
+    } catch {
+        Write-Host "Error removing profile for user '$username': $_"
+    }
+}
+
+# Function to remove user profile folders
+function Remove-UserProfileFolders {
+    param (
+        [string]$username
+    )
+
+    try {
+        # Define the user profile path
+        $userProfilePath = "C:\Users\$username"
+
+        if (Test-Path $userProfilePath) {
+            # Remove the user profile folder
+            Remove-Item -Path $userProfilePath -Recurse -Force
+            Write-Host "Profile folder for user '$username' removed successfully."
+        } else {
+            Write-Host "Profile folder for user '$username' not found."
+        }
+    } catch {
+        Write-Host "Error removing profile folder for user '$username': $_"
+    }
+}
+
+# Main script
+# Input multiple usernames
+$usernames = @("user1", "user2", "user3")  # Replace with the usernames you want to remove
+
+foreach ($username in $usernames) {
+    Remove-UserProfile -username $username
+    Remove-UserProfileFolders -username $username
+}
