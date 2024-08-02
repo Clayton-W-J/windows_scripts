@@ -1,0 +1,11 @@
+for ($i = 1; $i -le 100; $i++) {
+    $folderName = "Folder_$i"
+    $folderPath = "C:\$folderName"
+    New-Item -ItemType Directory -Path $folderPath -Force
+    for ($j = 1; $j -le 100; $j++) {
+        $fileName = "File_$j.txt"
+        $fileSize = Get-Random -Minimum 1KB -Maximum 1MB
+        $content = "0" * $fileSize
+        Set-Content -Path "$folderPath\$fileName" -Value $content
+    }
+}
