@@ -1,0 +1,35 @@
+# Define the network location
+$NetworkLocation = "\\servername\share"
+
+# Define the log file
+$LogFile = "C:\NetworkAccessLog.txt"
+
+# Interval between checks (in seconds)
+$IntervalSeconds = 5
+
+# Start the continuous loop
+while ($true) {
+    # Add a timestamp to the log
+    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -Path $LogFile -Value "[$Timestamp] Starting network access test for $NetworkLocation"
+
+    try {
+        # Attempt to list the shares at the network location
+        $Shares = Get-ChildItem -Path $NetworkLocation -ErrorAction Stop
+
+        # If successful, log it
+        Add-Content -Path $LogFile -Value "[$Timestamp] Successfully accessed $NetworkLocation"
+
+    } catch {
+        # Log the error
+        Add-Content -Path $LogFile -Value "[$Timestamp] Failed to access $NetworkLocation"
+        Add-Content -Path $LogFile -Value "Error: $($_.Exception.Message)"
+    }
+
+    # Add a completion timestamp
+    $TimestampEnd = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -Path $LogFile -Value "[$TimestampEnd] Network access test completed"
+
+    # Wait for the specified interval before running again
+    Start-Sleep -Seconds $IntervalSeconds
+}
