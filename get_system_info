@@ -1,0 +1,65 @@
+# Function to format bytes into GB
+function Convert-ToGB {
+    param([int64]$Bytes)
+    if ($Bytes -gt 0) { "{0:N2} GB" -f ($Bytes / 1GB) } else { "N/A" }
+}
+
+# Get OS Information
+$os = Get-CimInstance Win32_OperatingSystem | Select-Object @{N="OS";E={$_.Caption}}, Version, OSArchitecture, BuildNumber, @{N="InstallDate";E={$_.InstallDate | Get-Date -Format "yyyy-MM-dd"}}
+
+# Get Computer Hardware Info
+$computerSystem = Get-CimInstance Win32_ComputerSystem | Select-Object Manufacturer, Model
+$cpu = Get-CimInstance Win32_Processor | Select-Object @{N="Processor";E={$_.Name}}, @{N="Cores";E={$_.NumberOfCores}}, @{N="Threads";E={$_.NumberOfLogicalProcessors}}, @{N="MaxSpeed (MHz)";E={$_.MaxClockSpeed}}
+$ramTotal = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory
+$ram = Convert-ToGB -Bytes $ramTotal
+
+# Get Disk Information
+$disks = Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3 } | 
+    Select-Object DeviceID, VolumeName, FileSystem, @{N="Size";E={Convert-ToGB -Bytes $_.Size}}, 
+    @{N="FreeSpace";E={Convert-ToGB -Bytes $_.FreeSpace}}
+
+# Get installed printers
+$printers = Get-Printer | Select-Object Name, DriverName, PortName
+
+# Get monitor make and model
+$monitors = Get-CimInstance WmiMonitorID -Namespace root\wmi | ForEach-Object {
+    [PSCustomObject]@{
+        Manufacturer = [System.Text.Encoding]::ASCII.GetString($_.ManufacturerName) -replace '\x00'
+        Model = [System.Text.Encoding]::ASCII.GetString($_.ProductCodeID) -replace '\x00'
+        SerialNumber = [System.Text.Encoding]::ASCII.GetString($_.SerialNumberID) -replace '\x00'
+    }
+}
+
+# Get installed programs (Only show those with a name)
+$installedPrograms = Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* |
+    Where-Object { $_.DisplayName -ne $null } |
+    Select-Object @{N="Program";E={$_.DisplayName}}, DisplayVersion, Publisher
+
+# Get Network Adapters
+$networkAdapters = Get-CimInstance Win32_NetworkAdapterConfiguration | Where-Object { $_.IPEnabled -eq $true } | 
+    Select-Object @{N="Adapter";E={$_.Description}}, MACAddress, @{N="IP Address";E={$_.IPAddress -join ", "}}, 
+    @{N="Gateway";E={$_.DefaultIPGateway -join ", "}}, @{N="DNS";E={$_.DNSServerSearchOrder -join ", "}}
+
+# Display formatted output
+Write-Host "`n=== System Information ===`n" -ForegroundColor Cyan
+$os | Format-Table -AutoSize
+$computerSystem | Format-Table -AutoSize
+Write-Host "Total RAM: $ram" -ForegroundColor Yellow
+
+Write-Host "`n=== CPU Information ===`n" -ForegroundColor Cyan
+$cpu | Format-Table -AutoSize
+
+Write-Host "`n=== Disk Drives ===`n" -ForegroundColor Cyan
+$disks | Format-Table -AutoSize
+
+Write-Host "`n=== Printers ===`n" -ForegroundColor Cyan
+$printers | Format-Table -AutoSize
+
+Write-Host "`n=== Monitors ===`n" -ForegroundColor Cyan
+$monitors | Format-Table -AutoSize
+
+Write-Host "`n=== Installed Programs ===`n" -ForegroundColor Cyan
+$installedPrograms | Format-Table -Wrap -AutoSize
+
+Write-Host "`n=== Network Adapters ===`n" -ForegroundColor Cyan
+$networkAdapters | Format-Table -AutoSize
